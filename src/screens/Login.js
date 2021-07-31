@@ -1,6 +1,12 @@
+import { isLoggedInVar } from "../../apollo";
 
 function Login() {
-    return <h1>Login</h1>;
+    return (
+        <div>
+            <h1>Login</h1>
+            <button onClick={() => isLoggedInVar(true)}>LogIn</button>
+        </div>
+    );
 }
 
 export default Login;
