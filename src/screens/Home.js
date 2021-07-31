@@ -1,4 +1,4 @@
-import { isLoggedInVar } from "../../apollo";
+import { isLoggedInVar } from "../apollo";
 
 
 function Home() {
