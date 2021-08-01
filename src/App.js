@@ -1,23 +1,30 @@
 import { useReactiveVar } from "@apollo/client";
-import { HashRouter as Router, Route, Switch } from "react-router-dom";
-import { ThemeProvider } from "styled-components";
-import { isDarkModeVar, isLoggedInVar } from "./apollo";
+import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
 import Home from "./screens/Home";
 import Login from "./screens/Login";
 import NotFound from "./screens/NotFound";
+import { isDarkModeVar, isLoggedInVar } from "./apollo";
+import { ThemeProvider } from "styled-components";
 import { darkTheme, GlobalStyles, lightTheme } from "./styles";
+import SignUp from "./screens/Signup";
+import routes from "./routes";
 
 function App() {
   const isLoggedIn = useReactiveVar(isLoggedInVar);
-  const isDarkMode = useReactiveVar(isDarkModeVar);
+  const darkMode = useReactiveVar(isDarkModeVar);
   return (
-    <ThemeProvider theme={isDarkMode ? darkTheme : lightTheme}>
+    <ThemeProvider theme={darkMode ? darkTheme : lightTheme}>
       <GlobalStyles />
       <Router>
         <Switch>
-          <Route path="/" exact>
+          <Route path={routes.home} exact>
             {isLoggedIn ? <Home /> : <Login />}
           </Route>
+          {!isLoggedIn ? (
+            <Route path={routes.signUp}>
+              <SignUp />
+            </Route>
+          ) : null}
           <Route>
             <NotFound />
           </Route>
@@ -26,5 +33,4 @@ function App() {
     </ThemeProvider>
   );
 }
-
 export default App;
