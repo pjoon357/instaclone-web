@@ -14,6 +14,9 @@ import Separator from "../components/auth/Separator";
 import PageTitle from "../components/PageTitle";
 import FormError from "../components/auth/FormError";
 import routes from "../routes";
+import { gql, useMutation } from "@apollo/client";
+import { logUserIn } from "../apollo";
+import { useLocation } from "react-router-dom";
 
 const FacebookLogin = styled.div`
   color: #385285;
@@ -23,16 +26,60 @@ const FacebookLogin = styled.div`
   }
 `;
 
+const Notification = styled.div`
+  color: #2ecc71;
+`;
+
+const LOGIN_MUTATION = gql`
+  mutation login($username: String!, $password: String!){
+    login(username: $username, password: $password){
+      ok,
+      token,
+      error,
+    }
+  }
+`;
+
 function Login() {
-  const { register, handleSubmit, formState } = useForm({
-    mode: "onBlur",
+  const location = useLocation();
+
+  const { register, handleSubmit, formState, setError, clearErrors, getValues } = useForm({
+    mode: "onChange",
+    defaultValues: {
+      username: location?.state?.username || "",
+      password: location?.state?.password || "",
+    },
   });
+
+  const onCompleted = (data) => {
+    const { login: {
+      ok, token, error
+    } } = data;
+    if (!ok) {
+      return setError("result", {
+        message: error
+      });
+    }
+    if (token) {
+      logUserIn(token);
+    }
+  };
+
+  const [login, { loading }] = useMutation(LOGIN_MUTATION, {
+    onCompleted,
+  });
+
   const onSubmitValid = (data) => {
-    console.log(data);
+    if (loading) {
+      return;
+    }
+    const { username, password } = getValues();
+
+    login({
+      variables: { username, password }
+    });
   };
-  const onSubmitInvalid = (data) => {
-    console.log(data, "invalid");
-  };
+
   return (
     <AuthLayout>
       <PageTitle title="Login" />
@@ -40,20 +87,22 @@ function Login() {
         <div>
           <FontAwesomeIcon icon={faInstagram} size="3x" />
         </div>
-        <form onSubmit={handleSubmit(onSubmitValid, onSubmitInvalid)}>
+        <Notification>{location?.state?.message}</Notification>
+        <form onSubmit={handleSubmit(onSubmitValid)}>
           <Input {...register("username", {
             required: "Username is required",
             minLength: {
               value: 5,
               message: "Username should be longer than 5 chars.",
             },
-          })} type="text" placeholder="Username" hasError={Boolean(formState.errors?.username?.message)} />
+          })} onFocus={() => clearErrors("result")} type="text" placeholder="Username" hasError={Boolean(formState.errors?.username?.message)} />
           <FormError message={formState.errors?.username?.message} />
           <Input {...register("password", {
             required: "Password is required",
-          })} type="password" placeholder="Password" hasError={Boolean(formState.errors?.password?.message)} />
+          })} onFocus={() => clearErrors("result")} type="password" placeholder="Password" hasError={Boolean(formState.errors?.password?.message)} />
           <FormError message={formState.errors?.password?.message} />
-          <Button type="submit" value="Log in" disabled={!formState.isValid} />
+          <Button type="submit" value={loading ? "Loading..." : "Log in"} disabled={!formState.isValid || loading} />
+          <FormError message={formState.errors?.result?.message} />
         </form>
         <Separator />
         <FacebookLogin>
