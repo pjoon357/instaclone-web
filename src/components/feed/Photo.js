@@ -3,9 +3,10 @@ import { faBookmark, faComment, faHeart, faPaperPlane } from "@fortawesome/free-
 import { faHeart as SolidHeart } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import styled from "styled-components";
-import Avatar from "../components/Avatars";
-import { FatText } from "../components/shared";
+import Avatar from "../Avatars";
+import { FatText } from "../shared";
 import { gql, useMutation } from "@apollo/client";
+import Comments from "./Comments";
 
 const TOGGLE_LIKE_MUTAITON = gql`
     mutation toggleLike($id:Int!){
@@ -66,21 +67,25 @@ const Likes = styled(FatText)`
   display: block;
 `;
 
-function Photo({ id, user, file, isLiked, likes }) {
+function Photo({ id, user, file, isLiked, likes, caption, totalComments, comments }) {
     const updateToggleLike = (cache, result) => {
         const { data: { toggleLike: { ok } } } = result;
         if (ok) {
-            cache.writeFragment({
-                id: `Photo:${id}`,
-                fragment: gql`
-                    fragment any on Photo {
-                        isLiked
-                        likes
+            const photoId = `Photo:${id}`;
+            cache.modify({
+                id: photoId,
+                fields: {
+                    isLiked(prev) {
+                        return !prev;
+                    },
+                    likes(prev) {
+                        if (isLiked) {
+                            return prev - 1;
+                        }
+                        else {
+                            return prev + 1;
+                        }
                     }
-                `,
-                data: {
-                    isLiked: !isLiked,
-                    likes: isLiked ? likes - 1 : likes + 1,
                 }
             })
         }
@@ -123,6 +128,12 @@ function Photo({ id, user, file, isLiked, likes }) {
                 <Likes>
                     {`${likes}명이 좋아합니다`}
                 </Likes>
+                <Comments
+                    author={user.username}
+                    caption={caption}
+                    totalComments={totalComments}
+                    comments={comments}
+                />
             </PhotoData>
         </PhotoContainer>
     );
@@ -137,6 +148,8 @@ Photo.propTypes = {
     file: PropTypes.string.isRequired,
     isLiked: PropTypes.bool.isRequired,
     likes: PropTypes.number.isRequired,
+    totalComments: PropTypes.number.isRequired,
+    caption: PropTypes.string,
 };
 
 export default Photo;

@@ -1,7 +1,7 @@
 import { gql, useQuery } from "@apollo/client";
 import { useHistory } from "react-router-dom";
 import PageTitle from "../components/PageTitle";
-import Photo from "./Photo";
+import Photo from "../components/feed/Photo";
 
 
 const FEED_QUERY = gql`
@@ -15,7 +15,17 @@ const FEED_QUERY = gql`
       file
       caption
       likes
-      comments
+      totalComments
+      comments{
+        id
+        user{
+          username
+          avatar
+        }
+        payload
+        isMine
+        createdAt
+      }
       createdAt
       isMine
       isLiked
@@ -26,14 +36,14 @@ const FEED_QUERY = gql`
 
 
 function Home() {
-    const { data } = useQuery(FEED_QUERY);
-    const history = useHistory();
-    return (
-        <div>
-            <PageTitle title="Home" />
-            {data?.seeFeed?.map((photo) => <Photo key={photo.id} {...photo} />)}
-        </div>
-    );
+  const { data } = useQuery(FEED_QUERY);
+  const history = useHistory();
+  return (
+    <div>
+      <PageTitle title="Home" />
+      {data?.seeFeed?.map((photo) => <Photo key={photo.id} {...photo} />)}
+    </div>
+  );
 }
 
 export default Home;
