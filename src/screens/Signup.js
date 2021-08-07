@@ -98,7 +98,7 @@ function Signup() {
                     <FormError message={formState.errors?.username?.message} />
                     <Input {...register("password", { required: "Password is required", })} onFocus={() => clearErrors("result")} name="password" type="password" placeholder="Password" />
                     <FormError message={formState.errors?.password?.message} />
-                    <Button type="submit" value={loading ? "Loading..." : "Log in"} disabled={!formState.isValid || loading} />
+                    <Button type="submit" value={loading ? "Loading..." : "Sign Up"} disabled={!formState.isValid || loading} />
                     <FormError message={formState.errors?.result?.message} />
                 </form>
             </FormBox>
