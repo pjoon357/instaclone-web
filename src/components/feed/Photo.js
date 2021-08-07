@@ -87,7 +87,7 @@ function Photo({ id, user, file, isLiked, likes, caption, totalComments, comment
                         }
                     }
                 }
-            })
+            });
         }
     };
 
@@ -129,6 +129,7 @@ function Photo({ id, user, file, isLiked, likes, caption, totalComments, comment
                     {`${likes}명이 좋아합니다`}
                 </Likes>
                 <Comments
+                    photoId={id}
                     author={user.username}
                     caption={caption}
                     totalComments={totalComments}
