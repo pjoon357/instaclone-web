@@ -1,7 +1,10 @@
-import { gql, useQuery } from "@apollo/client";
+import { gql, useApolloClient, useMutation, useQuery } from "@apollo/client";
+import { faComment, faHeart } from "@fortawesome/free-regular-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useParams } from "react-router-dom";
 import styled from "styled-components";
 import Button from "../components/auth/Button";
+import useUser from "../components/hooks/useUser";
 import PageTitle from "../components/PageTitle";
 import { FatText } from "../components/shared";
 import { PHOTO_FRAGMENT } from "../fragments";
@@ -22,6 +25,22 @@ const SEE_PROFILE_QUERY = gql`
         }
     }
     ${PHOTO_FRAGMENT}
+`;
+
+const FOLLOW_USER_MUTATION = gql`
+  mutation followUSer($username: String!){
+    followUser(username: $username){
+      ok
+    }
+  }
+`;
+
+const UNFOLLOW_USER_MUTATION = gql`
+  mutation unfollowUSer($username: String!){
+    followUser(username: $username){
+      ok
+    }
+  }
 `;
 
 const Header = styled.div`
@@ -100,7 +119,7 @@ const Icon = styled.span`
 `;
 
 const ProfileBtn = styled(Button).attrs({
-    as: "span",
+  as: "span",
 })`
   margin-left: 10px;
   margin-top: 0px;
@@ -109,18 +128,151 @@ const ProfileBtn = styled(Button).attrs({
 
 
 function Profile() {
+  const client = useApolloClient();
+  const { data: userData } = useUser();
+  const { username } = useParams();
+  const { data, loading } = useQuery(SEE_PROFILE_QUERY, {
+    variables: {
+      username,
+    }
+  });
 
-    const { username } = useParams();
-    const { data } = useQuery(SEE_PROFILE_QUERY, {
-        variables: {
-            username,
+  const followUserCompleted = (data) => {
+    const { followUser: { ok } } = data;
+    if (!ok) {
+      return;
+    }
+    const { cache } = client
+    cache.modify({
+      id: `User:${username}`,
+      fields: {
+        totalFollowers(prev) {
+          return prev + 1;
+        },
+        isFollowing(prev) {
+          return true;
         }
+      }
     });
-    return (
-        <>
-            <PageTitle title="Profile" />
-        </>
-    );
+    const { me } = userData;
+    cache.modify({
+      id: `User:${me.username}`,
+      fields: {
+        totalFollowing(prev) {
+          return prev + 1;
+        },
+      }
+    });
+  };
+
+  const [followUser] = useMutation(FOLLOW_USER_MUTATION, {
+    variables: {
+      username,
+    },
+    onCompleted: followUserCompleted,
+  })
+
+  const unfollowUserUpdate = (cache, result) => {
+    const { data: { followUser: { ok } } } = result;
+    if (!ok) {
+      return;
+    }
+    cache.modify({
+      id: `User:${username}`,
+      fields: {
+        totalFollowers(prev) {
+          return prev - 1;
+        },
+        isFollowing(prev) {
+          return false;
+        }
+      }
+    });
+    const { me } = userData;
+    cache.modify({
+      id: `User:${me.username}`,
+      fields: {
+        totalFollowing(prev) {
+          return prev - 1;
+        },
+      }
+    });
+  };
+
+  const [unfollowUser] = useMutation(UNFOLLOW_USER_MUTATION, {
+    variables: {
+      username,
+    },
+    update: unfollowUserUpdate
+  });
+
+  const getButton = (seeProfile) => {
+    const { isMe, isFollowing } = seeProfile;
+    if (isMe) {
+      return <ProfileBtn>Edit Profile</ProfileBtn>;
+    }
+    if (isFollowing) {
+      return <ProfileBtn onClick={unfollowUser}>Unfollow</ProfileBtn>;
+    } else {
+      return <ProfileBtn onClick={followUser}>Follow</ProfileBtn>;
+    }
+  };
+  return (
+    <div>
+      <PageTitle
+        title={
+          loading ? "Loading..." : `${data?.seeProfile?.username}'s Profile`
+        }
+      />
+      <Header>
+        <Avatar src={data?.seeProfile?.avatar} />
+        <Column>
+          <Row>
+            <Username>{data?.seeProfile?.username}</Username>
+            {data?.seeProfile ? getButton(data.seeProfile) : null}
+          </Row>
+          <Row>
+            <List>
+              <Item>
+                <span>
+                  <Value>{data?.seeProfile?.totalFollowers}</Value> followers
+                </span>
+              </Item>
+              <Item>
+                <span>
+                  <Value>{data?.seeProfile?.totalFollowing}</Value> following
+                </span>
+              </Item>
+            </List>
+          </Row>
+          <Row>
+            <Name>
+              {data?.seeProfile?.firstName}
+              {"  "}
+              {data?.seeProfile?.lastName}
+            </Name>
+          </Row>
+          <Row>{data?.seeProfile?.bio}</Row>
+        </Column>
+      </Header>
+      <Grid>
+        {data?.seeProfile?.photos.map((photo) => (
+          <Photo key={photo.id} bg={photo.file}>
+            <Icons>
+              <Icon>
+                <FontAwesomeIcon icon={faHeart} />
+                {photo.likes}
+              </Icon>
+              <Icon>
+                <FontAwesomeIcon icon={faComment} />
+                {photo.commentNumber}
+              </Icon>
+            </Icons>
+          </Photo>
+        ))}
+      </Grid>
+    </div>
+  );
 }
 
 export default Profile;

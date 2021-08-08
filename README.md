@@ -3,5 +3,8 @@
 - Router
 - Authentication
 - Architecture
-- Styles
+- Styled Component
 - Login
+- Signup
+- Feed
+- Profile
